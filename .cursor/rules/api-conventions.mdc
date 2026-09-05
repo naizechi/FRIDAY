@@ -1,0 +1,36 @@
+---
+description: HTTP API contract — status codes, bodies, Location, errors
+globs: internal/features/**/transport/http/**/*.go,internal/core/transport/http/**/*.go,web/src/api/**/*.ts
+alwaysApply: false
+---
+
+# API-контракт
+
+**Источник правды:** `docs/api-conventions.md`.
+
+## Тело ответа
+
+Тело есть тогда и только тогда, когда оно сообщает клиенту новое.
+
+| Операция | Статус | Тело |
+|----------|--------|------|
+| Создание | 201 | Полная сущность + `Location` |
+| Чтение / изменение состояния | 200 | Полная сущность или массив |
+| Мутация без новой информации | 204 | Нет |
+
+## Хелперы
+
+Никогда не писать в `http.ResponseWriter` напрямую — только через `response.Handler`:
+`OK(data)`, `Created(location, body)`, `NoContent()`, `JSON(body, status)`, `Error(err, msg)`.
+
+`Location` строить от текущего запроса, префикс версии не хардкодить.
+
+## Ошибки
+
+`Error(err, msg)` сам выводит статус из sentinel-ошибок `internal/core/errors`
+(`ErrInvalidArgument` → 400, `ErrUnauthorized` → 401, `ErrForbidden` → 403, `ErrNotFound` → 404,
+`ErrConflict` → 409, timeout → 504, иначе 500).
+
+## Auth
+
+JWT Bearer в `Authorization`. Не cookie-only.

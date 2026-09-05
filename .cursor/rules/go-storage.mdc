@@ -1,0 +1,34 @@
+---
+description: Postgres layer — pgx, raw SQL, transactions, migrations
+globs: internal/**/repository/**/*.go,internal/core/repository/**/*.go,migrations/*.sql
+alwaysApply: false
+---
+
+# Слой хранения
+
+## Репозитории
+
+- Только `jackc/pgx/v5` + `pgxpool`; raw SQL с плейсхолдерами `$1`, без ORM.
+- `INSERT` возвращает сгенерированные поля через `RETURNING`.
+- Каждый метод оборачивается таймаутом:
+
+```go
+ctx, cancel := context.WithTimeout(ctx, r.pool.OptTimeout())
+defer cancel()
+```
+
+- Сканировать в приватные `*Model`-структуры, в домен переводить через `mapper.go`.
+- Маппинг ошибок на границе репозитория:
+  - `pgx.ErrNoRows` → `coreerrors.ErrNotFound`
+  - unique violation (`23505`) → `coreerrors.ErrConflict`
+
+## Транзакции
+
+- Сервис оркеструет через порт `TxRunner.WithinTx(ctx, fn)` (`internal/core/repository/postgres/pool`).
+- Репозиторий внутри транзакции берёт соединение через `pool.DBFromContext(ctx, r.pool)`.
+
+## Миграции
+
+- golang-migrate, каталог `migrations/`, создавать через `make migrate-create seq=Some_Name`.
+- Имя: `{seq6}_{Pascal_Snake_Title}.up.sql` + обязательная пара `.down.sql`.
+- Применение: `make migrate-up` / `make migrate-down`.

@@ -1,0 +1,32 @@
+openapi: 3.0.3
+info:
+  title: FRIDAY API
+  version: 0.1.0
+  description: Personal information platform API. Contract for web and future mobile clients.
+servers:
+  - url: /api/v1
+tags:
+  - name: health
+  - name: auth
+  - name: profile
+  - name: graph
+  - name: radar
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Liveness check
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+# auth, profile, graph, radar — endpoints land in Phase 0 (E1–E4).

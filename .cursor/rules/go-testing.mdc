@@ -1,0 +1,17 @@
+---
+description: Go tests — external tests package, hand mocks, httptest
+globs: internal/**/tests/*.go
+alwaysApply: false
+---
+
+# Go-тесты
+
+- Тесты живут во внешнем пакете: `<layer>/tests/`, `package tests` — тестируем только публичный контракт.
+- Каждый слой тестируется отдельно: transport (httptest + chi), service, repository.
+- Моки пишем руками — структура с полями-функциями, реализующая интерфейс **потребителя**.
+- Никаких mockery/gomock и testify — стандартная библиотека.
+- Каждый тест начинается с `t.Parallel()`; один сценарий — одна функция `TestXxx_Scenario`
+  (не table-driven).
+- HTTP-тесты: логгер обязан быть в контексте запроса, иначе хендлер паникует.
+- Ошибки проверять через `errors.Is(err, coreerrors.ErrX)`, статусы — по `rr.Code`.
+- Запуск: `make test` (или `go test ./...`).

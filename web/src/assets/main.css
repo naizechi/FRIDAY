@@ -1,0 +1,32 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Manrope', ui-sans-serif, sans-serif;
+
+  --color-ink-950: #0d1117;
+  --color-ink-900: #1f2328;
+  --color-ink-700: #32383f;
+  --color-ink-500: #656d76;
+  --color-ink-300: #8b949e;
+  --color-ink-100: #d0d7de;
+  --color-ink-50: #f4f5f7;
+
+  --color-accent-500: #2563eb;
+  --color-accent-600: #1d4ed8;
+
+  --color-surface: #ffffff;
+}
+
+@layer base {
+  html {
+    @apply h-full antialiased;
+  }
+
+  body {
+    @apply m-0 min-h-full bg-ink-50 font-sans text-ink-900;
+  }
+
+  #app {
+    @apply min-h-full;
+  }
+}

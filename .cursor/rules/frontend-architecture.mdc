@@ -1,0 +1,30 @@
+---
+description: Frontend architecture — api modules, Pinia, router, mobile-first
+globs: web/src/**/*.{ts,vue}
+alwaysApply: false
+---
+
+# Архитектура фронтенда
+
+Стек: Vue 3 + Vite + Pinia + vue-router + Tailwind 4. Импорты только через алиас `@/`.
+
+## API-слой (`web/src/api/`)
+
+- Все запросы через `apiRequest<T>` из `@/api/client` — никаких прямых `fetch` в компонентах.
+- Модуль на фичу: вызвал `apiRequest`, смапил snake_case DTO → camelCase тип, вернул доменный тип.
+- Auth (E1): хранить access/refresh и слать `Authorization: Bearer`.
+
+## Состояние
+
+- Pinia только в setup-стиле: `defineStore('id', () => { ... })`.
+- Бизнес-логика слоёв и ranking — на сервере. Клиент только рисует ответ API.
+
+## UI
+
+- Mobile-first: база 375px, нижний tab bar на мобиле, боковое меню от `md`.
+- Safe-area insets на header/tab bar.
+- Без hover-only действий; карточки и дашборды читаются на узком экране.
+
+## Тесты
+
+- Vitest, спеки рядом с кодом в `__tests__/*.spec.ts`. Запуск: `make test` или `npm run test` в `web/`.

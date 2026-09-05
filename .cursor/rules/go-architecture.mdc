@@ -1,0 +1,51 @@
+---
+description: Go backend — feature layout, interfaces, errors, validation, config
+globs: internal/**/*.go,cmd/**/*.go
+alwaysApply: false
+---
+
+# Архитектура Go-бэкенда
+
+## Структура фичи
+
+Вертикальные слайсы в `internal/features/<name>/`:
+
+```
+service/              # бизнес-логика + интерфейсы зависимостей
+repository/postgres/  # реализация на pgx (если нужна БД)
+transport/http/       # хендлеры, dto.go, mapper.go, transport.go
+```
+
+- Одна операция — один файл: `create.go`, `login.go`, `activate_layers.go`.
+- Общее (domain, errors, logger, pool, middleware) — в `internal/core/`.
+
+## Интерфейсы и связывание
+
+- Интерфейсы объявляет **потребитель**: transport объявляет интерфейс сервиса,
+  service — интерфейсы репозиториев. Порты делать узкими.
+- DI-фреймворка нет — всё связывается вручную в `cmd/friday/main.go`:
+  repository → config → service → handler → `Register` на chi.
+- Доступ к маршрутам — группами в `main.go`: публичные / `RequireAuth`
+  (middleware живёт в `internal/features/auth/transport/http/`).
+
+## Ошибки
+
+- Sentinel-ошибки только из `internal/core/errors`.
+- Порождать: `fmt.Errorf("%w: причина", coreerrors.ErrInvalidArgument)`.
+- Пробрасывать с контекстом: `fmt.Errorf("create profile: %w", err)`.
+
+## Валидация
+
+- Запросы: теги `validate:"..."` на DTO + `request.DecodeAndValidateRequest` → `ErrInvalidArgument`.
+- Доменные правила дублируются в сервисе.
+
+## Конфиг и логгер
+
+- Конфиг: `envconfig` с префиксом фичи, конструкторы `NewConfig()` / `NewConfigMust()`.
+  Новую переменную окружения добавляй и в `.env.example`.
+- Хендлеры: `logger.FromContext(ctx)`. Сервисы: `logger.FromContextOr(ctx, s.log)`.
+
+## Tooling
+
+- `make test` — `go test ./...` и фронтовые vitest.
+- `make lint` — `golangci-lint run` и `npm run lint` в `web/`.
