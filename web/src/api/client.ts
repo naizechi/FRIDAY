@@ -10,14 +10,44 @@ export class ApiError extends Error {
 
 type RequestOptions = Omit<RequestInit, 'body'> & {
   body?: unknown
+  skipAuth?: boolean
+  skipRefresh?: boolean
 }
 
 type UnauthorizedHandler = () => void
+type TokenGetter = () => string | null
+type TokenPair = { accessToken: string; refreshToken: string }
+type TokenRefresher = () => Promise<TokenPair | null>
+type SessionUpdater = (tokens: TokenPair) => void
 
 let onUnauthorized: UnauthorizedHandler | null = null
+let getAccessToken: TokenGetter | null = null
+let refreshTokens: TokenRefresher | null = null
+let updateSession: SessionUpdater | null = null
+
+let refreshPromise: Promise<TokenPair | null> | null = null
 
 export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
   onUnauthorized = handler
+}
+
+export function configureAuth(options: {
+  getAccessToken: TokenGetter
+  refreshTokens: TokenRefresher
+  updateSession: SessionUpdater
+}) {
+  getAccessToken = options.getAccessToken
+  refreshTokens = options.refreshTokens
+  updateSession = options.updateSession
+}
+
+/** Test helper: clear in-flight refresh and auth hooks. */
+export function resetAuthClient() {
+  onUnauthorized = null
+  getAccessToken = null
+  refreshTokens = null
+  updateSession = null
+  refreshPromise = null
 }
 
 export async function apiRequestWithHeaders<T>(
@@ -47,18 +77,61 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 }
 
 async function performRequest(path: string, options: RequestOptions = {}): Promise<Response> {
-  const { body, headers, ...rest } = options
+  const response = await rawFetch(path, options)
 
-  const response = await fetch(`/api/v1${path}`, {
+  if (response.status !== 401 || options.skipRefresh) {
+    return settleResponse(response)
+  }
+
+  const tokens = await singleFlightRefresh()
+  if (!tokens) {
+    onUnauthorized?.()
+    return settleResponse(response)
+  }
+
+  updateSession?.(tokens)
+  const retry = await rawFetch(path, { ...options, skipRefresh: true })
+  return settleResponse(retry)
+}
+
+async function singleFlightRefresh(): Promise<TokenPair | null> {
+  if (!refreshTokens) {
+    return null
+  }
+
+  if (!refreshPromise) {
+    refreshPromise = refreshTokens().finally(() => {
+      refreshPromise = null
+    })
+  }
+
+  return refreshPromise
+}
+
+async function rawFetch(path: string, options: RequestOptions = {}): Promise<Response> {
+  const { body, headers, skipAuth, skipRefresh: _skipRefresh, ...rest } = options
+
+  const requestHeaders: Record<string, string> = {
+    Accept: 'application/json',
+    ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+    ...(headers as Record<string, string> | undefined),
+  }
+
+  if (!skipAuth) {
+    const token = getAccessToken?.()
+    if (token) {
+      requestHeaders.Authorization = `Bearer ${token}`
+    }
+  }
+
+  return fetch(`/api/v1${path}`, {
     ...rest,
-    headers: {
-      Accept: 'application/json',
-      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-      ...headers,
-    },
+    headers: requestHeaders,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
+}
 
+async function settleResponse(response: Response): Promise<Response> {
   if (response.status === 401) {
     onUnauthorized?.()
   }

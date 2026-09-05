@@ -1,5 +1,5 @@
 ---
-description: Go tests — external tests package, hand mocks, httptest
+description: Go tests — external tests package, moq mocks, testify asserts, httptest
 globs: internal/**/tests/*.go
 alwaysApply: false
 ---
@@ -8,10 +8,12 @@ alwaysApply: false
 
 - Тесты живут во внешнем пакете: `<layer>/tests/`, `package tests` — тестируем только публичный контракт.
 - Каждый слой тестируется отдельно: transport (httptest + chi), service, repository.
-- Моки пишем руками — структура с полями-функциями, реализующая интерфейс **потребителя**.
-- Никаких mockery/gomock и testify — стандартная библиотека.
+- Моки генерируем через **moq** (`go:generate` рядом с интерфейсом потребителя) —
+  структура с полями-функциями. Без mockery/gomock и без `testify/mock`.
+- Ассерты: `testify` (`assert` / `require`). Sentinel-ошибки — `require.ErrorIs`.
+  `suite` не используем.
 - Каждый тест начинается с `t.Parallel()`; один сценарий — одна функция `TestXxx_Scenario`
   (не table-driven).
 - HTTP-тесты: логгер обязан быть в контексте запроса, иначе хендлер паникует.
-- Ошибки проверять через `errors.Is(err, coreerrors.ErrX)`, статусы — по `rr.Code`.
-- Запуск: `make test` (или `go test ./...`).
+- Статусы — `require.Equal(t, http.StatusX, rr.Code)`.
+- Запуск: `make test` (или `go test ./...`). Сгенерировать моки: `go generate ./...`.

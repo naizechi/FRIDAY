@@ -15,14 +15,15 @@ Your personal information system. It knows what matters to you, watches the inte
 
 ```bash
 cp .env.example .env
+# set AUTH_JWT_SECRET to a long random value before first run
 make env-up
 make env-port-forward
-make migrate-up   # 000001_Init
+make migrate-up   # includes users + refresh_tokens
 make dev          # API (air) + Vue (vite)
 ```
 
-- API: `http://localhost:8080` — `GET /api/v1/health`
-- Web: Vite dev-server (proxy `/api` → `:8080`)
+- API: `http://localhost:8080` — `GET /api/v1/health`, auth under `/api/v1/auth/*`, `GET /api/v1/me`
+- Web: Vite dev-server (proxy `/api` → `:8080`); open `/register` or `/login`
 - Postgres на хосте: `127.0.0.1:5433` (внутри сети Compose — `friday-postgres:5432`; `5432` часто занят другими проектами)
 - Redis на хосте: `127.0.0.1:6379`
 

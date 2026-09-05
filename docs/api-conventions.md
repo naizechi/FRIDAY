@@ -79,5 +79,10 @@ responseHandler.Created(location, dtoFromDomain(entity))
 | Метод и путь | Доступ | Ответ |
 |--------------|--------|-------|
 | `GET /health` | публичный | 200 `{status}` |
+| `POST /auth/register` | публичный | 201 Session + `Location: …/me` |
+| `POST /auth/login` | публичный | 200 Session |
+| `POST /auth/refresh` | публичный | 200 Session (ротация refresh) |
+| `POST /auth/logout` | публичный | 204 |
+| `GET /me` | Bearer access | 200 `{id, email, created_at}` |
 
-Дальше по Phase 0: auth, profile, graph, radar — см. [TASKS.md](TASKS.md) и [openapi.yaml](openapi.yaml).
+Дальше по Phase 0: profile, graph, radar — см. [TASKS.md](TASKS.md) и [openapi.yaml](openapi.yaml).

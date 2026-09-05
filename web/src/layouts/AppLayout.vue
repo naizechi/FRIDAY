@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
+
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
+const router = useRouter()
+
+async function onLogout() {
+  await auth.logout()
+  await router.replace({ name: 'login' })
+}
 </script>
 
 <template>
@@ -17,13 +27,23 @@ import { RouterLink, RouterView } from 'vue-router'
           Radar
         </RouterLink>
       </nav>
+      <button
+        type="button"
+        class="mt-6 w-full rounded-md px-3 py-2 text-left text-sm font-medium text-ink-500"
+        @click="onLogout"
+      >
+        Sign out
+      </button>
     </aside>
 
     <div class="flex min-w-0 flex-1 flex-col">
       <header
-        class="border-b border-ink-100 bg-surface px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:hidden"
+        class="flex items-center justify-between border-b border-ink-100 bg-surface px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:hidden"
       >
         <p class="text-base font-semibold tracking-tight text-ink-950">FRIDAY</p>
+        <button type="button" class="text-sm font-medium text-ink-500" @click="onLogout">
+          Sign out
+        </button>
       </header>
 
       <main class="flex-1 overflow-y-auto px-4 py-4 pb-[max(5rem,calc(4rem+env(safe-area-inset-bottom)))] md:pb-6">

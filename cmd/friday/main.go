@@ -12,6 +12,9 @@ import (
 	"github.com/naizechi/friday/internal/core/repository/postgres/pool"
 	"github.com/naizechi/friday/internal/core/transport/http/middleware"
 	"github.com/naizechi/friday/internal/core/transport/http/server"
+	authpg "github.com/naizechi/friday/internal/features/auth/repository/postgres"
+	authsvc "github.com/naizechi/friday/internal/features/auth/service"
+	authhttp "github.com/naizechi/friday/internal/features/auth/transport/http"
 	healthhttp "github.com/naizechi/friday/internal/features/health/transport/http"
 )
 
@@ -33,6 +36,13 @@ func main() {
 	}
 	defer pgPool.Close()
 
+	authCfg := authsvc.NewConfigMust()
+	authRepo := authpg.NewRepository(pgPool)
+	txRunner := pool.NewTxRunner(pgPool)
+	tokenManager := authsvc.NewTokenManager(authCfg)
+	authService := authsvc.New(authRepo, authRepo, txRunner, tokenManager, log, authCfg)
+	authTransportHTTP := authhttp.NewHandler(authService)
+
 	log.Debug("initializing HTTP server")
 	httpServer := server.NewHTTPServer(
 		server.NewConfigMust(),
@@ -47,6 +57,11 @@ func main() {
 
 	httpServer.RegisterAPIRoutes("v1", func(r chi.Router) {
 		healthTransportHTTP.Register(r)
+		authTransportHTTP.RegisterPublic(r)
+		r.Group(func(r chi.Router) {
+			r.Use(authTransportHTTP.RequireAuth)
+			authTransportHTTP.RegisterProtected(r)
+		})
 	})
 
 	if err := httpServer.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
